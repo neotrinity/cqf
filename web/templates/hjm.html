@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>HJM</title>
+{% endblock title %}
+
+{% block content %}
+<p class="lead">HJM</p>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="panel panel-default">
+            <div class="panel-heading text-center">HJM</div>
+            <div class="panel-body">    
+                <form method="POST" id='hjm_form' role='form'>
+                    {{ form.hidden_tag() }}
+                    {{ render_field(form.principal) }}
+                    {{ render_field(form.product) }}
+                    {{ render_field(form.maturity) }}
+                    {{ render_field(form.interest_rate) }}
+                    {{ render_field(form.frequency) }}
+                    {{ render_field(form.no_of_factors) }}
+                    {{ render_field(form.no_of_simulations) }}
+                    <div><a class="btn btn-primary" href='#' id='calculate'>Calculate HJM</a></div>
+                    <div>
+                        <label>Price:</label>
+                        <div id='price' class='well'></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading text-center">Convergence</div>
+            <div class="panel-body">    
+                    <div id='graph-1' class='result-graph'></div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading text-center">Principal Components</div>
+            <div class="panel-body">    
+                    <div id='graph-2' class='result-graph'></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+<script type=text/javascript>
+
+// $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+$(document).ready(function () {
+      $(function() {
+        $('a#calculate').bind('click', function() {
+            var status = $('#hjm_form').parsley('validate');
+            if (status) {
+                $.ajax({
+                    type:'POST',
+                    url: '{{ url_for("api.hjm") }}', // url 
+                    data: $("#hjm_form").serialize(), // form data
+                    //dataType:'json',
+                    //async: false,
+                    
+                    success:function(payload){
+                        console.log(payload);
+                        $('#price').html(payload.price);
+                        $.plot($("#graph-1"), [payload.sims]);
+
+                        $.plot($("#graph-2"), payload.pca);
+                    },
+                    beforeSend: function(){
+                        console.log('beforesend')
+                        $('.result-graph').html("<div> <img src={{ url_for('static', filename='images/ajax-loader.gif')}}/> </div>")
+                    },
+                    complete: function(){
+                        // Code to hide spinner.
+                    }
+                });
+            };
+        });
+      });
+});
+</script>
+{% endblock scripts %}
